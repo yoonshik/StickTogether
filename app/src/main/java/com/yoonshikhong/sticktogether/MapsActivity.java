@@ -15,9 +15,10 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.TextView;
 
 import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
@@ -32,6 +33,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -57,6 +59,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location myLocation;
     private LatLng currentLatLng;
     private LocationListener locationListener;
+    private String myNumber;
+    private LinkedHashMap<String, String> contacts;
 
     LocationManager locationManager;
     private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
@@ -66,10 +70,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-	    Firebase.setAndroidContext(this);
+        Firebase.setAndroidContext(this);
+        Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+        myFirebaseRef.child("newmessage").setValue("I have data!!!");
 
-	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
-		myFirebaseRef.child("newmessage").setValue("I have data!!!");
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -77,14 +81,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        final Button button = (Button) findViewById(R.id.button_id);
+        final Activity myActivity = this;
+
+        final TextView button = (TextView) findViewById(R.id.button_id);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-                startActivityForResult(intent, PICK_CONTACT);
+//                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+//                startActivityForResult(intent, PICK_CONTACT);
+                Intent intent = new Intent(myActivity, ContactListActivity.class);
+                startActivity(intent);
             }
         });
 
+
+
+        TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
+        myNumber = tm.getLine1Number();
+        Log.i(TAG, myNumber);
 
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -293,7 +306,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             catch (IOException e) {
                 e.printStackTrace();
             }
-
 
             currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
             if (currentMarker != null) {

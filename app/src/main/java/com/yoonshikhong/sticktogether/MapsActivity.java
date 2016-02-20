@@ -6,12 +6,11 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -21,14 +20,21 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
-import java.text.BreakIterator;
 import java.util.List;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
+    // The minimum distance to change Updates in meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10/ 10; // 10 meters
+
+    // The minimum time between updates in milliseconds
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1 / 60; // 1 minute
+
 
     private GoogleMap mMap;
     private static final String TAG = "MapsActivity";
@@ -36,8 +42,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleApiClient mGoogleApiClient;
     private Location myLocation;
     private LatLng myLatLng;
-    private BreakIterator mLatitudeText;
-    private BreakIterator mLongitudeText;
+    private LocationListener locationListener;
+
+    LocationManager locationManager;
+    private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
+    private Marker lastMarker;
 
 
     @Override
@@ -56,6 +65,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .addApi(LocationServices.API)
                     .build();
         }
+
+        locationManager = (LocationManager) getSystemService(MapsActivity.LOCATION_SERVICE);
+        locationListener = new MyLocationListener();
+        lastMarker = null;
+
 
         myLocationMarker = new MarkerOptions().title("Me");
 
@@ -90,14 +104,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setMyLocationEnabled(true);
 
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CHANGE_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
 
@@ -115,17 +131,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onConnected(Bundle connectionHint) {
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            myLocation = LocationServices.FusedLocationApi.getLastLocation(
-                    mGoogleApiClient);
-        }
-        if (myLocation!=null){
+//        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+//            myLocation = LocationServices.FusedLocationApi.getLastLocation(
+//                    mGoogleApiClient);
+//        }
+
+        myLocation = getLocation();
+
+        if (myLocation==null) {
+            Log.i(TAG, "Location unavailable");
+        } else {
             myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-            mMap.addMarker(myLocationMarker.position(myLatLng));
+            if (lastMarker != null) {
+                lastMarker.remove();
+            }
+            lastMarker = mMap.addMarker(myLocationMarker.position(myLatLng));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
         }
-
     }
+
+
 
     @Override
     public void onConnectionSuspended(int i) {
@@ -137,26 +162,85 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private class MyLocationListener implements LocationListener {
+    public Location getLocation() {
+        try {
 
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return null;
+            }
+
+            locationManager = (LocationManager) this
+                    .getSystemService(MapsActivity.LOCATION_SERVICE);
+
+            // getting GPS status
+            isGPSEnabled = locationManager
+                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+            // Log.v("isGPSEnabled", "=" + isGPSEnabled);
+
+            // getting network status
+            isNetworkEnabled = locationManager
+                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+            // Log.v("isNetworkEnabled", "=" + isNetworkEnabled);
+
+            if (isGPSEnabled == false && isNetworkEnabled == false) {
+                // no network provider is enabled
+            } else {
+                this.canGetLocation = true;
+                if (isNetworkEnabled) {
+                    locationManager.requestLocationUpdates(
+                            LocationManager.NETWORK_PROVIDER,
+                            MIN_TIME_BW_UPDATES,
+                            MIN_DISTANCE_CHANGE_FOR_UPDATES, locationListener);
+                    Log.d("Network", "Network");
+                    if (locationManager != null) {
+                        myLocation = locationManager
+                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    }
+                }
+                // if GPS Enabled get lat/long using GPS Services
+                if (isGPSEnabled) {
+                    if (myLocation == null) {
+                        locationManager.requestLocationUpdates(
+                                LocationManager.GPS_PROVIDER,
+                                MIN_TIME_BW_UPDATES,
+                                MIN_DISTANCE_CHANGE_FOR_UPDATES, locationListener);
+                        Log.d("GPS Enabled", "GPS Enabled");
+                        if (locationManager != null) {
+                            myLocation = locationManager
+                                    .getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return myLocation;
+    }
+
+
+    private class MyLocationListener implements LocationListener {
         @Override
         public void onLocationChanged(Location loc) {
-            Toast.makeText(
-                    getBaseContext(),
-                    "Location changed: Lat: " + loc.getLatitude() + " Lng: "
-                            + loc.getLongitude(), Toast.LENGTH_SHORT).show();
-            String longitude = "Longitude: " + loc.getLongitude();
-            Log.v(TAG, longitude);
-            String latitude = "Latitude: " + loc.getLatitude();
-            Log.v(TAG, latitude);
+            myLocation = getLocation();
+
+//            Toast.makeText(
+//                    getBaseContext(),
+//                    "Location changed: Lat: " + myLocation.getLatitude() + " Lng: "
+//                            + myLocation.getLongitude(), Toast.LENGTH_SHORT).show();
 
         /*------- To get city name from coordinates -------- */
             String cityName = null;
             Geocoder gcd = new Geocoder(getBaseContext(), Locale.getDefault());
             List<Address> addresses;
             try {
-                addresses = gcd.getFromLocation(loc.getLatitude(),
-                        loc.getLongitude(), 1);
+                addresses = gcd.getFromLocation(myLocation.getLatitude(),
+                        myLocation.getLongitude(), 1);
                 if (addresses.size() > 0) {
                     System.out.println(addresses.get(0).getLocality());
                     cityName = addresses.get(0).getLocality();
@@ -165,13 +249,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             catch (IOException e) {
                 e.printStackTrace();
             }
-            String s = longitude + "\n" + latitude + "\n\nMy Current City is: "
-                    + cityName;
 
-            myLatLng = new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude));
 
-            // Add a marker in Sydney and move the camera
-            mMap.addMarker(myLocationMarker.position(myLatLng));
+            myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+            if (lastMarker != null) {
+                lastMarker.remove();
+            }
+            lastMarker = mMap.addMarker(myLocationMarker.position(myLatLng));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
         }
 

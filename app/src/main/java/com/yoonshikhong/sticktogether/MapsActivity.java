@@ -38,15 +38,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private static final String TAG = "MapsActivity";
-    private MarkerOptions myLocationMarker = null;
+    private MarkerOptions markerOptions = null;
     private GoogleApiClient mGoogleApiClient;
     private Location myLocation;
-    private LatLng myLatLng;
+    private LatLng currentLatLng;
     private LocationListener locationListener;
 
     LocationManager locationManager;
     private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
-    private Marker lastMarker;
+    private Marker currentMarker;
 
 
     @Override
@@ -68,10 +68,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         locationManager = (LocationManager) getSystemService(MapsActivity.LOCATION_SERVICE);
         locationListener = new MyLocationListener();
-        lastMarker = null;
+        currentMarker = null;
 
 
-        myLocationMarker = new MarkerOptions().title("Me");
+        markerOptions = new MarkerOptions().title("Me");
 
 
 
@@ -141,12 +141,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (myLocation==null) {
             Log.i(TAG, "Location unavailable");
         } else {
-            myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-            if (lastMarker != null) {
-                lastMarker.remove();
+            currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+            if (currentMarker != null) {
+                //remove old marker
+                currentMarker.remove();
             }
-            lastMarker = mMap.addMarker(myLocationMarker.position(myLatLng));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
+            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
     }
 
@@ -251,12 +252,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
 
-            myLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-            if (lastMarker != null) {
-                lastMarker.remove();
+            currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+            if (currentMarker != null) {
+                currentMarker.remove();
             }
-            lastMarker = mMap.addMarker(myLocationMarker.position(myLatLng));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(myLatLng));
+            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
 
         @Override

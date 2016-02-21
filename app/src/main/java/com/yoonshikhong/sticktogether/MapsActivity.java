@@ -39,7 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnMarkerClickListener,GoogleMap.OnMapLongClickListener {
 
     private static final String TAG = "MapsActivity";
 
@@ -59,15 +59,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 	private Marker waypointMarker;
 	private MarkerOptions waypointOptions;
+	private MarkerOptions cursorOptions;
 	private double wpLongitude, wpLatitude;
 	private boolean activeWaypoint = false;
 	private CurrentGroupListener currentGroupListener;
+
+	private Marker cursorMarker;
 	//firebase representation of the current user
 	private User self;
 	private Group currentGroup;
 
 
     LocationManager locationManager;
+
+	@Override
+	public boolean onMarkerClick(Marker marker) {
+		return false;
+		//TODO set waypoint prompt
+		//set cursormarker to null if yes
+	}
+
+	@Override
+	public void onMapLongClick(LatLng latLng) {
+		if (cursorMarker != null) {
+			cursorMarker.remove();
+			cursorMarker = null;
+		}
+
+		cursorMarker = mMap.addMarker(cursorOptions.position(latLng));
+		onMarkerClick(cursorMarker);
+		mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+	}
 
 	/**
 	 * Listens for the self to be added to a group from another device
@@ -130,6 +152,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 	    waypointOptions = new MarkerOptions();
+	    cursorOptions = new MarkerOptions();
 
         final Activity myActivity = this;
 
@@ -233,6 +256,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+	    mMap.setOnMarkerClickListener(this);
+	    mMap.setOnMapLongClickListener(this);
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
 

@@ -2,6 +2,8 @@ package com.yoonshikhong.sticktogether;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -18,6 +20,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
@@ -51,64 +54,64 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private static final int PICK_CONTACTS = 1510;
 
-	private Firebase myFirebaseRef;
+    private Firebase myFirebaseRef;
     private GoogleMap mMap;
     private GoogleApiClient mGoogleApiClient;
     private Location myLocation;
     private LocationListener locationListener;
 
-	private Marker waypointMarker;
-	private MarkerOptions waypointOptions;
-	private double wpLongitude, wpLatitude;
-	private boolean activeWaypoint = false;
-	private CurrentGroupListener currentGroupListener;
-	//firebase representation of the current user
-	private User self;
-	private Group currentGroup;
+    private Marker waypointMarker;
+    private MarkerOptions waypointOptions;
+    private double wpLongitude, wpLatitude;
+    private boolean activeWaypoint = false;
+    private CurrentGroupListener currentGroupListener;
+    //firebase representation of the current user
+    private User self;
+    private Group currentGroup;
 
 
     LocationManager locationManager;
 
-	/**
-	 * Listens for the self to be added to a group from another device
-	 */
-	private class SelfListener implements ValueEventListener {
-		@Override
-		public void onDataChange(DataSnapshot dataSnapshot) {
-			if (currentGroup == null && dataSnapshot.child("groups").exists()) { //must have children
-				String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
-				Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
-				setCurrentGroup(firstGroup);
-			}
-		}
+    /**
+     * Listens for the self to be added to a group from another device
+     */
+    private class SelfListener implements ValueEventListener {
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            if (currentGroup == null && dataSnapshot.child("groups").exists()) { //must have children
+                String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
+                Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
+                setCurrentGroup(firstGroup);
+            }
+        }
 
-		@Override
-		public void onCancelled(FirebaseError firebaseError) {
+        @Override
+        public void onCancelled(FirebaseError firebaseError) {
 
-		}
-	}
+        }
+    }
 
-	private class CurrentGroupListener implements ValueEventListener {
+    private class CurrentGroupListener implements ValueEventListener {
 
-		@Override
-		public void onDataChange(DataSnapshot dataSnapshot) {
-			DataSnapshot waypointSnap = dataSnapshot.child("waypoint");
-			if (waypointSnap.child("latitude").exists() && waypointSnap.child("longitude").exists()) {
-				wpLatitude = (double) waypointSnap.child("latitude").getValue();
-				wpLongitude = (double) waypointSnap.child("longitude").getValue();
-				activeWaypoint = true;
-				updateWaypoint();
-			} else if (activeWaypoint) {
-				activeWaypoint = false;
-				updateWaypoint();
-			}
-		}
+        @Override
+        public void onDataChange(DataSnapshot dataSnapshot) {
+            DataSnapshot waypointSnap = dataSnapshot.child("waypoint");
+            if (waypointSnap.child("latitude").exists() && waypointSnap.child("longitude").exists()) {
+                wpLatitude = (double) waypointSnap.child("latitude").getValue();
+                wpLongitude = (double) waypointSnap.child("longitude").getValue();
+                activeWaypoint = true;
+                updateWaypoint();
+            } else if (activeWaypoint) {
+                activeWaypoint = false;
+                updateWaypoint();
+            }
+        }
 
-		@Override
-		public void onCancelled(FirebaseError firebaseError) {
+        @Override
+        public void onCancelled(FirebaseError firebaseError) {
 
-		}
-	}
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,31 +119,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Firebase.setAndroidContext(this);
 
-	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+        myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
 
-	    String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
-	    self = User.createUserByPhoneNumber(myFirebaseRef, myNumber);
-	    self.addValueEventListener(new SelfListener());
-	    //set user name
-	    self.writeName(AppUtils.formatName(getUserName()));
+        String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
+        self = User.createUserByPhoneNumber(myFirebaseRef, myNumber);
+        self.addValueEventListener(new SelfListener());
+        //set user name
+        self.writeName(AppUtils.formatName(getUserName()));
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-	    waypointOptions = new MarkerOptions();
+        waypointOptions = new MarkerOptions();
 
         final Activity myActivity = this;
 
         final ImageButton button = (ImageButton) findViewById(R.id.button_id);
         button.setOnClickListener(new View.OnClickListener() {
-	        public void onClick(View v) {
+            public void onClick(View v) {
 //                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
 //                startActivityForResult(intent, PICK_CONTACT);
-		        Intent intent = new Intent(myActivity, ContactListActivity.class);
-		        startActivityForResult(intent, PICK_CONTACTS);
-	        }
+                Intent intent = new Intent(myActivity, ContactListActivity.class);
+                startActivityForResult(intent, PICK_CONTACTS);
+            }
         });
 
         TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
@@ -159,18 +162,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new MyLocationListener();
     }
 
-	/**
-	 * Called when the self joins a group
-	 * @param group
-	 */
-	private void setCurrentGroup(Group group) {
-		if (currentGroup != null && currentGroupListener != null) {
-			currentGroup.removeValueEventListener(currentGroupListener);
-		}
-		currentGroup = group;
-		currentGroupListener = new CurrentGroupListener();
-		group.addValueEventListener(currentGroupListener);
-	}
+    /**
+     * Called when the self joins a group
+     * @param group
+     */
+    private void setCurrentGroup(Group group) {
+        if (currentGroup != null && currentGroupListener != null) {
+            currentGroup.removeValueEventListener(currentGroupListener);
+        }
+        currentGroup = group;
+        currentGroupListener = new CurrentGroupListener();
+        group.addValueEventListener(currentGroupListener);
+    }
 
     @Override
     protected void onStart() {
@@ -184,16 +187,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onStop();
     }
 
-	private void updateWaypoint() {
-		if (waypointMarker != null) {
-			waypointMarker.remove();
-			waypointMarker = null;
-		}
-		if (!activeWaypoint)
-			return;
+    private void updateWaypoint() {
+        if (waypointMarker != null) {
+            waypointMarker.remove();
+            waypointMarker = null;
+        }
+        if (!activeWaypoint)
+            return;
 
-		waypointMarker = mMap.addMarker(waypointOptions.position(new LatLng(wpLatitude, wpLongitude)));
-	}
+        waypointMarker = mMap.addMarker(waypointOptions.position(new LatLng(wpLatitude, wpLongitude)));
+    }
 
     @Override
     public void onActivityResult(int reqCode, int resultCode, Intent data) {
@@ -205,20 +208,58 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Log.i(TAG, data.toString());
                     ArrayList<String> names = data.getStringArrayListExtra("names");
                     ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
-	                Group currentGroup = Group.createNewGroup(myFirebaseRef);
-	                currentGroup.joinMember(self);
+                    Group currentGroup = Group.createNewGroup(myFirebaseRef);
+                    currentGroup.joinMember(self);
                     for (int i = 0; i < names.size(); i++) {
-	                    final User friend = User.createUserByPhoneNumber(myFirebaseRef,
-			                    AppUtils.formatPhoneNumber(numbers.get(i)));
-	                    friend.writeName(AppUtils.formatName(names.get(i)));
-	                    friend.setMap(mMap);
-	                    friend.addCoordinateListener();
+                        final User friend = User.createUserByPhoneNumber(myFirebaseRef,
+                                AppUtils.formatPhoneNumber(numbers.get(i)));
+                        friend.writeName(AppUtils.formatName(names.get(i)));
+                        friend.setMap(mMap);
+                        friend.addCoordinateListener();
 
-	                    currentGroup.joinMember(friend);
+                        currentGroup.joinMember(friend);
                     }
                 }
                 break;
         }
+    }
+
+    public void setWaypointDialogue(String str) {
+        AlertDialog.Builder alertDialog2 = new AlertDialog.Builder(
+                MapsActivity.this);
+
+        // Setting Dialog Title
+        alertDialog2.setTitle("Set waypoint");
+
+        // Setting Dialog Message
+        alertDialog2.setMessage("Would you like to navigate to this location?");
+
+
+        // Setting Positive "Yes" Btn
+        alertDialog2.setPositiveButton("YES",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Write your code here to execute after dialog
+                        Toast.makeText(getApplicationContext(),
+                                "You clicked on YES", Toast.LENGTH_SHORT)
+                                .show();
+                    }
+                });
+
+        // Setting Negative "NO" Btn
+        alertDialog2.setNegativeButton("NO",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Write your code here to execute after dialog
+                        Toast.makeText(getApplicationContext(),
+                                "You clicked on NO", Toast.LENGTH_SHORT)
+                                .show();
+                        dialog.cancel();
+                    }
+                });
+
+        // Showing Alert Dialog
+        alertDialog2.show();
     }
 
     /**
@@ -356,7 +397,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void onLocationChanged(Location loc) {
             myLocation = getLocation();
 
-			self.writeCoordinates(myLocation.getLongitude(), myLocation.getLatitude());
+            self.writeCoordinates(myLocation.getLongitude(), myLocation.getLatitude());
 
 //            Toast.makeText(
 //                    getBaseContext(),
@@ -391,12 +432,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void onStatusChanged(String provider, int status, Bundle extras) {}
     }
 
-	private String getUserName() {
-		Cursor c = getApplication().getContentResolver().query(ContactsContract.Profile.CONTENT_URI, null, null, null, null);
-		c.moveToFirst();
-		String retVal = c.getString(c.getColumnIndex("display_name"));
-		c.close();
-		return retVal;
-	}
+    private String getUserName() {
+        Cursor c = getApplication().getContentResolver().query(ContactsContract.Profile.CONTENT_URI, null, null, null, null);
+        c.moveToFirst();
+        String retVal = c.getString(c.getColumnIndex("display_name"));
+        c.close();
+        return retVal;
+    }
 
 }

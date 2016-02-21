@@ -9,7 +9,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -27,15 +26,15 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
+    private static final String TAG = "MapsActivity";
 
     // The minimum distance to change Updates in meters
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // 10 meters
@@ -45,26 +44,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private static final int PICK_CONTACTS = 1510;
 
-    private static final int CONTACT_PICKER_RESULT = 1001;
-    private static final String DEBUG_TAG = "Contact List";
-    private static final int RESULT_OK = -1;
-
-
 	private Firebase myFirebaseRef;
     private GoogleMap mMap;
-    private static final String TAG = "MapsActivity";
-    private MarkerOptions markerOptions = null;
     private GoogleApiClient mGoogleApiClient;
     private Location myLocation;
-    private LatLng currentLatLng;
     private LocationListener locationListener;
-    private LinkedHashMap<String, String> contacts;
 	//firebase representation of the current user
 	private User self;
-	private Group currentGroup;
 
     LocationManager locationManager;
-    private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
+
 
 
     @Override
@@ -73,7 +62,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Firebase.setAndroidContext(this);
 
-	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
 
 	    Group testGroup = Group.createNewGroup(myFirebaseRef);
 	    User testUser = User.createUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
@@ -118,9 +107,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         locationManager = (LocationManager) getSystemService(MapsActivity.LOCATION_SERVICE);
         locationListener = new MyLocationListener();
-
-
-        markerOptions = new MarkerOptions().title("Me");
     }
 
     @Override
@@ -143,10 +129,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             case (PICK_CONTACTS) :
                 if (resultCode == Activity.RESULT_OK) {
                     Log.i(TAG, data.toString());
-                    Uri contactData = data.getData();
                     ArrayList<String> names = data.getStringArrayListExtra("names");
                     ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
-	                currentGroup = Group.createNewGroup(myFirebaseRef);
+	                Group currentGroup = Group.createNewGroup(myFirebaseRef);
 
                     for (int i = 0; i < names.size(); i++) {
 	                    final User friend = User.createUserByPhoneNumber(myFirebaseRef,
@@ -208,12 +193,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                    mGoogleApiClient);
 //        }
 
+
         myLocation = getLocation();
 
         if (myLocation==null) {
             Log.i(TAG, "Location unavailable");
         } else {
-            currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+            LatLng currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
     }
@@ -231,6 +217,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public Location getLocation() {
+        boolean isGPSEnabled, isNetworkEnabled;
         try {
 
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -253,10 +240,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Log.v("isNetworkEnabled", "=" + isNetworkEnabled);
 
-            if (isGPSEnabled == false && isNetworkEnabled == false) {
-                // no network provider is enabled
-            } else {
-                this.canGetLocation = true;
+            if (isGPSEnabled || isNetworkEnabled) {
                 if (isNetworkEnabled) {
                     locationManager.requestLocationUpdates(
                             LocationManager.NETWORK_PROVIDER,
@@ -305,7 +289,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                            + myLocation.getLongitude(), Toast.LENGTH_SHORT).show();
 
         /*------- To get city name from coordinates -------- */
-            String cityName = null;
+
             Geocoder gcd = new Geocoder(getBaseContext(), Locale.getDefault());
             List<Address> addresses;
             try {
@@ -313,7 +297,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         myLocation.getLongitude(), 1);
                 if (addresses.size() > 0) {
                     System.out.println(addresses.get(0).getLocality());
-                    cityName = addresses.get(0).getLocality();
+//                    String cityName = addresses.get(0).getLocality();
                 }
             }
             catch (IOException e) {

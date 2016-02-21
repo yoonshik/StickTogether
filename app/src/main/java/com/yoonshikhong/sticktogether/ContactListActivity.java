@@ -52,14 +52,7 @@ public class ContactListActivity extends Activity {
                 final Cursor phones = myActivity.getContentResolver().query( ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, ContactsContract.CommonDataKinds.Phone.CONTACT_ID +" = "+ contactId, null, null);
                 while (phones!=null&&phones.moveToNext()) {
                     String phoneNumber = phones.getString(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    int itype = phones.getInt(phones.getColumnIndex(ContactsContract.CommonDataKinds.Phone.TYPE));
                     Log.i(TAG, name + ' ' + phoneNumber);
-//                    final boolean isMobile =
-//                            itype == ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE ||
-//                                    itype == ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE;
-                    // Do something here with 'phoneNumber' such as saving into
-                    // the List or Array that will be used in your 'ListView'.
-
                     if (!contactNamesNumbers.containsKey(name)) {
                         contactNamesNumbers.put(name, phoneNumber);
                     }

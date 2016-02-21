@@ -17,7 +17,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.ValueEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -51,10 +54,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationListener locationListener;
 	//firebase representation of the current user
 	private User self;
+	private Group currentGroup;
 
     LocationManager locationManager;
 
+	/**
+	 * Listens for the self to be added to a group from another device
+	 */
+	private class SelfListener implements ValueEventListener {
+		@Override
+		public void onDataChange(DataSnapshot dataSnapshot) {
+			if (currentGroup == null && dataSnapshot.child("groups").exists()) { //must have children
+				String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
+				Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
+				setCurrentGroup(firstGroup);
+			}
+		}
 
+		@Override
+		public void onCancelled(FirebaseError firebaseError) {
+
+		}
+	}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,16 +85,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
 
-	    Group testGroup = Group.createNewGroup(myFirebaseRef);
-	    User testUser = User.createUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
-	    testGroup.joinMember(testUser);
-        Firebase.setAndroidContext(this);
-
-	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
-
 	    String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
-	    //TODO don't register self if already in database
 	    self = User.createUserByPhoneNumber(myFirebaseRef, myNumber);
+	    self.addValueEventListener(new SelfListener());
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -109,6 +123,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new MyLocationListener();
     }
 
+	/**
+	 * Called when the self joins a group
+	 * @param group
+	 */
+	private void setCurrentGroup(Group group) {
+		currentGroup = group;
+		//TODO setup listener
+	}
+
     @Override
     protected void onStart() {
         mGoogleApiClient.connect();
@@ -132,7 +155,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     ArrayList<String> names = data.getStringArrayListExtra("names");
                     ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
 	                Group currentGroup = Group.createNewGroup(myFirebaseRef);
-
+	                currentGroup.joinMember(self);
                     for (int i = 0; i < names.size(); i++) {
 	                    final User friend = User.createUserByPhoneNumber(myFirebaseRef,
 			                    AppUtils.formatPhoneNumber(numbers.get(i)));
@@ -303,6 +326,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
 
         @Override
@@ -314,4 +338,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
     }
+
 }

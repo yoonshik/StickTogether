@@ -18,6 +18,7 @@ public class User {
 	private Marker marker;
 	private GoogleMap map;
 	private MarkerOptions markerOptions;
+	private ValueEventListener coordinateListener;
 
 	private Firebase userRef;
 
@@ -47,7 +48,7 @@ public class User {
 	}
 
 	public void addCoordinateListener() {
-		ValueEventListener listener = new ValueEventListener() {
+		coordinateListener = new ValueEventListener() {
 			@Override
 			public void onDataChange(DataSnapshot dataSnapshot) {
 				DataSnapshot longitudeSnap = dataSnapshot.child("longitude");
@@ -64,6 +65,10 @@ public class User {
 
 			}
 		};
+		userRef.addValueEventListener(coordinateListener);
+	}
+
+	public void addValueEventListener(ValueEventListener listener) {
 		userRef.addValueEventListener(listener);
 	}
 
@@ -86,6 +91,14 @@ public class User {
 		this.latitude = latitude;
 		userRef.child("longitude").setValue(longitude);
 		userRef.child("latitude").setValue(latitude);
+	}
+
+	/**
+	 * Marks the user as having joined the given group
+	 * @param group
+	 */
+	void joinGroup(Group group) {
+		userRef.child("groups").child(group.getUniqueIdentifier()).setValue("joined");
 	}
 
 	public String getUniqueIdentifier() {

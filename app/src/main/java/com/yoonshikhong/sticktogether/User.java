@@ -22,22 +22,17 @@ public class User {
 	private Firebase userRef;
 
 	/**
-	 * Adds a new user to the database
+	 * Queries database for a user with the given phone number. If empty, creates a user in the db.
 	 *
 	 * @param rootRef
 	 * @param phoneNumber
-	 * @return
+	 * @return The User object representing the user on the db
 	 */
-	public static User registerNewUserByPhoneNumber(Firebase rootRef, String phoneNumber) {
+	public static User createUserByPhoneNumber(Firebase rootRef, String phoneNumber) {
 		Firebase usersRef = rootRef.child("users");
 
 		User user = new User(phoneNumber);
-		user.userRef = usersRef.push();
-		String userKey = user.userRef.getKey();
-
-		UserFirebaseContainer container = new UserFirebaseContainer();
-		container.setIdentifier(user.uniqueIdentifier);
-		user.userRef.setValue(container);
+		user.userRef = usersRef.child(phoneNumber);
 
 		return user;
 	}
@@ -87,7 +82,6 @@ public class User {
 	 * @param latitude
 	 */
 	public void writeCoordinates(double longitude, double latitude) {
-		String userKey = userRef.getKey();
 		this.longitude = longitude;
 		this.latitude = latitude;
 		userRef.child("longitude").setValue(longitude);

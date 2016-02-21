@@ -81,7 +81,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 	    String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
 	    //TODO don't register self if already in database
-	    self = User.registerNewUserByPhoneNumber(myFirebaseRef, myNumber);
+	    self = User.createUserByPhoneNumber(myFirebaseRef, myNumber);
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -142,7 +142,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 	                currentGroup = Group.createNewGroup(myFirebaseRef);
 
                     for (int i = 0; i < names.size(); i++) {
-	                    final User friend = User.registerNewUserByPhoneNumber(myFirebaseRef,
+	                    final User friend = User.createUserByPhoneNumber(myFirebaseRef,
 			                    AppUtils.formatPhoneNumber(numbers.get(i)));
 	                    friend.setMap(mMap);
 	                    friend.addCoordinateListener();

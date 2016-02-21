@@ -1,13 +1,12 @@
 package com.yoonshikhong.sticktogether;
 
 
-import android.provider.ContactsContract;
-
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -78,7 +77,7 @@ public class User {
 			//remove old marker
 			marker.remove();
 		}
-		marker = map.addMarker(markerOptions.position(new LatLng(latitude, longitude)));
+		marker = map.addMarker(markerOptions.position(new LatLng(latitude, longitude)).icon(BitmapDescriptorFactory.fromResource(R.drawable.rsz_person_pin_resized_32)).title(uniqueIdentifier));
 	}
 
 	/**

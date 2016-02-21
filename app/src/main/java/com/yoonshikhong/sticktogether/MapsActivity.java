@@ -18,7 +18,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.firebase.client.ValueEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -32,6 +35,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -62,10 +66,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LinkedHashMap<String, String> contacts;
 	//firebase representation of the current user
 	private User self;
+	private Group currentGroup;
 
     LocationManager locationManager;
     private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
-    private Marker currentMarker;
 
 
     @Override
@@ -75,13 +79,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
 
-	    String myNumber = ((TelephonyManager)getSystemService(TELEPHONY_SERVICE)).getLine1Number();
+	    String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
 	    //TODO don't register self if already in database
 	    self = User.registerNewUserByPhoneNumber(myFirebaseRef, myNumber);
-
-	    Group testGroup = Group.createNewGroup(myFirebaseRef);
-	    User testUser = User.registerNewUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
-	    testGroup.joinMember(testUser);
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -111,7 +111,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         locationManager = (LocationManager) getSystemService(MapsActivity.LOCATION_SERVICE);
         locationListener = new MyLocationListener();
-        currentMarker = null;
 
 
         markerOptions = new MarkerOptions().title("Me");
@@ -140,10 +139,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Uri contactData = data.getData();
                     ArrayList<String> names = data.getStringArrayListExtra("names");
                     ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
+	                currentGroup = Group.createNewGroup(myFirebaseRef);
 
                     for (int i = 0; i < names.size(); i++) {
-	                    User friend = User.registerNewUserByPhoneNumber(myFirebaseRef, numbers.get(i));
+	                    final User friend = User.registerNewUserByPhoneNumber(myFirebaseRef,
+			                    AppUtils.formatPhoneNumber(numbers.get(i)));
+	                    friend.setMap(mMap);
+	                    friend.addCoordinateListener();
 
+	                    currentGroup.joinMember(friend);
                     }
                 }
                 break;
@@ -202,11 +206,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Log.i(TAG, "Location unavailable");
         } else {
             currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-            if (currentMarker != null) {
-                //remove old marker
-                currentMarker.remove();
-            }
-            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
     }
@@ -290,7 +289,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void onLocationChanged(Location loc) {
             myLocation = getLocation();
 
-			self.setCoordinates(myLocation.getLongitude(), myLocation.getLatitude());
+			self.writeCoordinates(myLocation.getLongitude(), myLocation.getLatitude());
 
 //            Toast.makeText(
 //                    getBaseContext(),
@@ -312,13 +311,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             catch (IOException e) {
                 e.printStackTrace();
             }
-
-            currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
-            if (currentMarker != null) {
-                currentMarker.remove();
-            }
-            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng).title(cityName));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
 
         @Override

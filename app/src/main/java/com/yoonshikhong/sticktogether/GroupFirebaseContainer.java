@@ -7,7 +7,6 @@ import java.util.Map;
  * Created by Admin on 2/20/2016.
  */
 public class GroupFirebaseContainer {
-	private String identifier;
 	private Map<String, String> invites = new HashMap<>();
 	private Map<String, String> members = new HashMap<>();
 
@@ -27,14 +26,6 @@ public class GroupFirebaseContainer {
 
 	public void setInvites(Map<String, String> invites) {
 		this.invites = invites;
-	}
-
-	public String getIdentifier() {
-		return identifier;
-	}
-
-	public void setIdentifier(String identifier) {
-		this.identifier = identifier;
 	}
 
 }

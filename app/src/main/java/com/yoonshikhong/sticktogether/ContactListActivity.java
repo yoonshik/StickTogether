@@ -124,7 +124,6 @@ public class ContactListActivity extends Activity {
                 convertView = vi.inflate(R.layout.contact_info, null);
 
                 holder = new ViewHolder();
-                holder.code = (TextView) convertView.findViewById(R.id.code);
                 holder.name = (CheckBox) convertView.findViewById(R.id.checkBox1);
                 convertView.setTag(holder);
 
@@ -145,7 +144,7 @@ public class ContactListActivity extends Activity {
             }
 
             Contact contact = contactList.get(position);
-            holder.code.setText(" " +  contact.getCode() + "");
+
             holder.name.setText(contact.getName());
             holder.name.setChecked(contact.isSelected());
             holder.name.setTag(contact);

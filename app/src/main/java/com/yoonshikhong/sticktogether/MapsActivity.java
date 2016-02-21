@@ -43,7 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, GoogleMap.OnMarkerClickListener,GoogleMap.OnMapLongClickListener {
 
     private static final String TAG = "MapsActivity";
 
@@ -61,58 +61,73 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location myLocation;
     private LocationListener locationListener;
 
-    private Marker waypointMarker;
-    private MarkerOptions waypointOptions;
-    private double wpLongitude, wpLatitude;
-    private boolean activeWaypoint = false;
-    private CurrentGroupListener currentGroupListener;
-    //firebase representation of the current user
-    private User self;
-    private Group currentGroup;
+	private Marker waypointMarker;
+	private MarkerOptions waypointOptions;
+	private MarkerOptions cursorOptions;
+	private double wpLongitude, wpLatitude;
+	private boolean activeWaypoint = false;
+	private CurrentGroupListener currentGroupListener;
+
+	private Marker cursorMarker;
+	//firebase representation of the current user
+	private User self;
+	private Group currentGroup;
 
 
     LocationManager locationManager;
 
-    /**
-     * Listens for the self to be added to a group from another device
-     */
-    private class SelfListener implements ValueEventListener {
-        @Override
-        public void onDataChange(DataSnapshot dataSnapshot) {
-            if (currentGroup == null && dataSnapshot.child("groups").exists()) { //must have children
-                String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
-                Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
-                setCurrentGroup(firstGroup);
-            }
-        }
+	@Override
+	public boolean onMarkerClick(Marker marker) {
+		setWaypointDialogue(marker);
+		return false;
+	}
 
-        @Override
-        public void onCancelled(FirebaseError firebaseError) {
+	@Override
+	public void onMapLongClick(LatLng latLng) {
+		if (cursorMarker != null) {
+			cursorMarker.remove();
+			cursorMarker = null;
+		}
 
-        }
-    }
+		cursorMarker = mMap.addMarker(cursorOptions.position(latLng));
+	}
 
-    private class CurrentGroupListener implements ValueEventListener {
+	/**
+	 * Listens for the self to be added to a group from another device
+	 */
+	private class SelfListener implements ValueEventListener {
+		@Override
+		public void onDataChange(DataSnapshot dataSnapshot) {
+			if (currentGroup == null && dataSnapshot.child("groups").exists()) { //must have children
+				String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
+				Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
+				setCurrentGroup(firstGroup);
+			}
+		}
 
-        @Override
-        public void onDataChange(DataSnapshot dataSnapshot) {
-            DataSnapshot waypointSnap = dataSnapshot.child("waypoint");
-            if (waypointSnap.child("latitude").exists() && waypointSnap.child("longitude").exists()) {
-                wpLatitude = (double) waypointSnap.child("latitude").getValue();
-                wpLongitude = (double) waypointSnap.child("longitude").getValue();
-                activeWaypoint = true;
-                updateWaypoint();
-            } else if (activeWaypoint) {
-                activeWaypoint = false;
-                updateWaypoint();
-            }
-        }
+		@Override
+		public void onCancelled(FirebaseError firebaseError) {
 
-        @Override
-        public void onCancelled(FirebaseError firebaseError) {
+		}
+	}
 
-        }
-    }
+	private class CurrentGroupListener implements ValueEventListener {
+
+		@Override
+		public void onDataChange(DataSnapshot dataSnapshot) {
+			DataSnapshot waypointSnap = dataSnapshot.child("waypoint");
+			if (waypointSnap.child("latitude").exists() && waypointSnap.child("longitude").exists()) {
+				placeWaypoint((double) waypointSnap.child("latitude").getValue(), (double) waypointSnap.child("longitude").getValue());
+			} else if (activeWaypoint) {
+				removeWaypoint();
+			}
+		}
+
+		@Override
+		public void onCancelled(FirebaseError firebaseError) {
+
+		}
+	}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +148,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        waypointOptions = new MarkerOptions();
+	    waypointOptions = new MarkerOptions();
+	    cursorOptions = new MarkerOptions();
 
         final Activity myActivity = this;
 
@@ -200,6 +216,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onStop();
     }
 
+	private void placeWaypoint(double latitude, double longitude) {
+		activeWaypoint = true;
+		wpLongitude = longitude;
+		wpLatitude = latitude;
+		updateWaypoint();
+	}
+
+	private void removeWaypoint() {
+		activeWaypoint = false;
+		updateWaypoint();
+	}
+
     private void updateWaypoint() {
         if (waypointMarker != null) {
             waypointMarker.remove();
@@ -237,7 +265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public void setWaypointDialogue(String str) {
+    public void setWaypointDialogue(final Marker marker) {
         AlertDialog.Builder alertDialog2 = new AlertDialog.Builder(
                 MapsActivity.this);
 
@@ -245,16 +273,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         alertDialog2.setTitle("Set waypoint");
 
         // Setting Dialog Message
-        alertDialog2.setMessage("Would you like to navigate to this location?");
+        alertDialog2.setMessage("Would you like to set the waypoint?");
 
 
         // Setting Positive "Yes" Btn
         alertDialog2.setPositiveButton("YES",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        // Write your code here to execute after dialog
+	                    placeWaypoint(marker.getPosition().latitude, marker.getPosition().longitude);
+	                    if (marker == cursorMarker) {
+		                    cursorMarker.remove();
+		                    cursorMarker = null;
+	                    }
                         Toast.makeText(getApplicationContext(),
-                                "You clicked on YES", Toast.LENGTH_SHORT)
+                                "Waypoint updated", Toast.LENGTH_SHORT)
                                 .show();
                     }
                 });
@@ -263,11 +295,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         alertDialog2.setNegativeButton("NO",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        // Write your code here to execute after dialog
-                        Toast.makeText(getApplicationContext(),
-                                "You clicked on NO", Toast.LENGTH_SHORT)
-                                .show();
                         dialog.cancel();
+	                    if (marker == cursorMarker) {
+		                    cursorMarker.remove();
+		                    cursorMarker = null;
+	                    }
                     }
                 });
 
@@ -287,6 +319,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+	    mMap.setOnMarkerClickListener(this);
+	    mMap.setOnMapLongClickListener(this);
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
 

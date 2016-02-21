@@ -23,12 +23,17 @@ import com.firebase.client.FirebaseError;
 import com.firebase.client.ValueEventListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.games.snapshot.Snapshot;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,9 +57,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleApiClient mGoogleApiClient;
     private Location myLocation;
     private LocationListener locationListener;
+
+	private Marker waypointMarker;
+	private MarkerOptions waypointOptions;
+	private double wpLongitude, wpLatitude;
+	private boolean activeWaypoint = false;
+	private CurrentGroupListener currentGroupListener;
 	//firebase representation of the current user
 	private User self;
 	private Group currentGroup;
+
 
     LocationManager locationManager;
 
@@ -68,6 +80,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 				String firstGroupId = dataSnapshot.child("groups").getChildren().iterator().next().getKey();
 				Group firstGroup = Group.getExistingGroup(myFirebaseRef, firstGroupId);
 				setCurrentGroup(firstGroup);
+			}
+		}
+
+		@Override
+		public void onCancelled(FirebaseError firebaseError) {
+
+		}
+	}
+
+	private class CurrentGroupListener implements ValueEventListener {
+
+		@Override
+		public void onDataChange(DataSnapshot dataSnapshot) {
+			DataSnapshot waypointSnap = dataSnapshot.child("waypoint");
+			if (waypointSnap.child("latitude").exists() && waypointSnap.child("longitude").exists()) {
+				wpLatitude = (double) waypointSnap.child("latitude").getValue();
+				wpLongitude = (double) waypointSnap.child("longitude").getValue();
+				activeWaypoint = true;
+				updateWaypoint();
+			} else if (activeWaypoint) {
+				activeWaypoint = false;
+				updateWaypoint();
 			}
 		}
 
@@ -94,6 +128,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+	    waypointOptions = new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
 
         final Activity myActivity = this;
 
@@ -128,8 +163,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 	 * @param group
 	 */
 	private void setCurrentGroup(Group group) {
+		if (currentGroup != null && currentGroupListener != null) {
+			currentGroup.removeValueEventListener(currentGroupListener);
+		}
 		currentGroup = group;
-		//TODO setup listener
+		currentGroupListener = new CurrentGroupListener();
+		group.addValueEventListener(currentGroupListener);
 	}
 
     @Override
@@ -143,6 +182,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mGoogleApiClient.disconnect();
         super.onStop();
     }
+
+	private void updateWaypoint() {
+		if (waypointMarker != null) {
+			waypointMarker.remove();
+			waypointMarker = null;
+		}
+		if (!activeWaypoint)
+			return;
+
+		waypointMarker = mMap.addMarker(waypointOptions.position(new LatLng(wpLatitude, wpLongitude)));
+	}
 
     @Override
     public void onActivityResult(int reqCode, int resultCode, Intent data) {

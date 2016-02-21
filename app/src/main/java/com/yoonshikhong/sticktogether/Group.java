@@ -45,6 +45,14 @@ public class Group {
 		return group;
 	}
 
+	public void addValueEventListener(ValueEventListener listener) {
+		groupRef.addValueEventListener(listener);
+	}
+
+	public void removeValueEventListener(ValueEventListener listener) {
+		groupRef.removeEventListener(listener);
+	}
+
 	/**
 	 * Marks the group as having the newUser as a member. Marks the newUser as being a member of the group.
 	 * @param newUser

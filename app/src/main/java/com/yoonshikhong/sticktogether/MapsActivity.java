@@ -56,7 +56,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 	    Firebase.setAndroidContext(this);
 
 	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
-		myFirebaseRef.child("newmessage").setValue("I have data!!!");
+
+	    Group testGroup = Group.createNewGroup(myFirebaseRef);
+	    User testUser = User.registerNewUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
+	    testGroup.joinMember(testUser);
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.

@@ -77,7 +77,7 @@ public class User {
 			//remove old marker
 			marker.remove();
 		}
-		marker = map.addMarker(markerOptions.position(new LatLng(latitude, longitude)).icon(BitmapDescriptorFactory.fromResource(R.drawable.rsz_person_pin_resized_32)).title(uniqueIdentifier));
+		marker = map.addMarker(markerOptions.position(new LatLng(latitude, longitude)).icon(BitmapDescriptorFactory.fromResource(R.drawable.rsz_person_pin_resized_32)).title(name));
 	}
 
 	/**

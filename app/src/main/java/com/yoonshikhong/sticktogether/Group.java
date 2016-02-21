@@ -45,6 +45,11 @@ public class Group {
 		return group;
 	}
 
+	public void writeWaypoint(double latitude, double longitude) {
+		groupRef.child("waypoint").child("latitude").setValue(latitude);
+		groupRef.child("waypoint").child("longitude").setValue(longitude);
+	}
+
 	public void addValueEventListener(ValueEventListener listener) {
 		groupRef.addValueEventListener(listener);
 	}

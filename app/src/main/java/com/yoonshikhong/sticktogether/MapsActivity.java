@@ -51,6 +51,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int RESULT_OK = -1;
 
 
+	private Firebase myFirebaseRef;
     private GoogleMap mMap;
     private static final String TAG = "MapsActivity";
     private MarkerOptions markerOptions = null;
@@ -58,8 +59,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location myLocation;
     private LatLng currentLatLng;
     private LocationListener locationListener;
-    private String myNumber;
     private LinkedHashMap<String, String> contacts;
+	//firebase representation of the current user
+	private User self;
 
     LocationManager locationManager;
     private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
@@ -71,7 +73,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         Firebase.setAndroidContext(this);
 
-	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+	    myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+
+	    String myNumber = ((TelephonyManager)getSystemService(TELEPHONY_SERVICE)).getLine1Number();
+	    //TODO don't register self if already in database
+	    self = User.registerNewUserByPhoneNumber(myFirebaseRef, myNumber);
 
 	    Group testGroup = Group.createNewGroup(myFirebaseRef);
 	    User testUser = User.registerNewUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
@@ -87,19 +93,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         final TextView button = (TextView) findViewById(R.id.button_id);
         button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
+	        public void onClick(View v) {
 //                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
 //                startActivityForResult(intent, PICK_CONTACT);
-                Intent intent = new Intent(myActivity, ContactListActivity.class);
-                startActivityForResult(intent, PICK_CONTACTS);
-            }
+		        Intent intent = new Intent(myActivity, ContactListActivity.class);
+		        startActivityForResult(intent, PICK_CONTACTS);
+	        }
         });
-
-
-
-        TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
-        myNumber = tm.getLine1Number();
-        Log.i(TAG, myNumber);
 
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -142,7 +142,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
 
                     for (int i = 0; i < names.size(); i++) {
-                        Log.i(TAG, i + " " + names.get(i));
+	                    User friend = User.registerNewUserByPhoneNumber(myFirebaseRef, numbers.get(i));
+
                     }
                 }
                 break;
@@ -288,6 +289,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onLocationChanged(Location loc) {
             myLocation = getLocation();
+
+			self.setCoordinates(myLocation.getLongitude(), myLocation.getLatitude());
 
 //            Toast.makeText(
 //                    getBaseContext(),

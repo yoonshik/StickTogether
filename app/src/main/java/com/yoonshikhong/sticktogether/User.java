@@ -37,6 +37,19 @@ public class User {
 		this.uniqueIdentifier = uniqueIdentifier;
 	}
 
+	/**
+	 * Sets user's coordinates and pushes to Firebase
+	 *
+	 * @param longitude
+	 * @param latitude
+	 */
+	public void setCoordinates(double longitude, double latitude) {
+		this.longitude = longitude;
+		this.latitude = latitude;
+		userRef.child("longitude").setValue(longitude);
+		userRef.child("latitude").setValue(latitude);
+	}
+
 	public String getUniqueIdentifier() {
 		return uniqueIdentifier;
 	}

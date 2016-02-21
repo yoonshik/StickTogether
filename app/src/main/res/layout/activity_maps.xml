@@ -50,6 +50,20 @@
             android:id="@+id/button_id" />
     </LinearLayout>
 
+    <Button
+        android:background="@android:drawable/dialog_holo_light_frame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="550dp"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
+        android:text="Message group"
+        android:id="@+id/group_message_button"
+        android:layout_gravity="right" />
+
 
 
     <!--<EditText-->

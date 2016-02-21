@@ -19,6 +19,7 @@ import android.support.v4.app.FragmentActivity;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -143,6 +144,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                startActivityForResult(intent, PICK_CONTACT);
                 Intent intent = new Intent(myActivity, ContactListActivity.class);
                 startActivityForResult(intent, PICK_CONTACTS);
+            }
+        });
+
+        final Button groupMessageButton = (Button) findViewById(R.id.group_message_button);
+        groupMessageButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                Log.i(TAG, "Send tex");
+                Intent sendIntent = new Intent(Intent.ACTION_VIEW);
+                sendIntent.putExtra("sms_body", "default content");
+                sendIntent.putExtra("address", new String("3019560921;3017893695"));
+                sendIntent.setType("vnd.android-dir/mms-sms");
+                startActivity(sendIntent);
             }
         });
 

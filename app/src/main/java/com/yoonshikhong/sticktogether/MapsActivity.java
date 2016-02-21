@@ -1,16 +1,24 @@
 package com.yoonshikhong.sticktogether;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
 
 import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
@@ -25,16 +33,23 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10/ 10; // 10 meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // 10 meters
 
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1 / 60; // 1 minute
+    private static final long MIN_TIME_BW_UPDATES = 200; // 1 minute
+
+    private static final int PICK_CONTACT = 1;
+
+    private static final int CONTACT_PICKER_RESULT = 1001;
+    private static final String DEBUG_TAG = "Contact List";
+    private static final int RESULT_OK = -1;
 
 
     private GoogleMap mMap;
@@ -44,6 +59,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location myLocation;
     private LatLng currentLatLng;
     private LocationListener locationListener;
+    private String myNumber;
+    private LinkedHashMap<String, String> contacts;
 
     LocationManager locationManager;
     private boolean isGPSEnabled, isNetworkEnabled, canGetLocation = false;
@@ -53,7 +70,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-	    Firebase.setAndroidContext(this);
+        Firebase.setAndroidContext(this);
 
 	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
 
@@ -66,6 +83,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        final Activity myActivity = this;
+
+        final TextView button = (TextView) findViewById(R.id.button_id);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+//                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+//                startActivityForResult(intent, PICK_CONTACT);
+                Intent intent = new Intent(myActivity, ContactListActivity.class);
+                startActivity(intent);
+            }
+        });
+
+
+
+        TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
+        myNumber = tm.getLine1Number();
+        Log.i(TAG, myNumber);
 
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -81,9 +116,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         markerOptions = new MarkerOptions().title("Me");
-
-
-
     }
 
     @Override
@@ -96,6 +128,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStop() {
         mGoogleApiClient.disconnect();
         super.onStop();
+    }
+
+    @Override
+    public void onActivityResult(int reqCode, int resultCode, Intent data) {
+        super.onActivityResult(reqCode, resultCode, data);
+
+        switch (reqCode) {
+            case (PICK_CONTACT) :
+                if (resultCode == Activity.RESULT_OK) {
+                    Uri contactData = data.getData();
+                    Cursor c =  managedQuery(contactData, null, null, null, null);
+                    if (c.moveToFirst()) {
+                        String name = c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                        Log.i(TAG, name);
+                        // TODO Fetch other Contact details as you want to use
+                    }
+                }
+                break;
+        }
     }
 
     /**
@@ -135,7 +186,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .build();
         }
 
-        // Add a marker in Sydney and move the camera
     }
 
     @Override
@@ -260,12 +310,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 e.printStackTrace();
             }
 
-
             currentLatLng = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
             if (currentMarker != null) {
                 currentMarker.remove();
             }
-            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng));
+            currentMarker = mMap.addMarker(markerOptions.position(currentLatLng).title(cityName));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLatLng));
         }
 

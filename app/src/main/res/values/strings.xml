@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">StickTogether</string>
     <string name="title_activity_maps">StickTogether</string>
-    <string name="contacts">Contacts</string>
+    <string name="contacts">Group Name</string>
     <string name="some_text">
         Your Contacts
     </string>

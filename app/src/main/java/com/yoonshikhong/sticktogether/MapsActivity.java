@@ -16,9 +16,8 @@ import android.support.v4.app.FragmentActivity;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
+import android.widget.ImageButton;
 
-import com.firebase.client.Firebase;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
@@ -69,13 +68,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Firebase.setAndroidContext(this);
-
-	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
-
-	    Group testGroup = Group.createNewGroup(myFirebaseRef);
-	    User testUser = User.registerNewUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
-	    testGroup.joinMember(testUser);
+//        Firebase.setAndroidContext(this);
+//
+//	    Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
+//
+//	    Group testGroup = Group.createNewGroup(myFirebaseRef);
+//	    User testUser = User.registerNewUserByPhoneNumber(myFirebaseRef, "800STANLEYSTEAMER");
+//	    testGroup.joinMember(testUser);
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -85,7 +84,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         final Activity myActivity = this;
 
-        final TextView button = (TextView) findViewById(R.id.button_id);
+        final ImageButton button = (ImageButton) findViewById(R.id.button_id);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 //                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
@@ -94,8 +93,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 startActivityForResult(intent, PICK_CONTACTS);
             }
         });
-
-
 
         TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
         myNumber = tm.getLine1Number();
@@ -162,6 +159,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.setMyLocationEnabled(true);
+        mMap.getUiSettings().setMyLocationButtonEnabled(false);
 
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&

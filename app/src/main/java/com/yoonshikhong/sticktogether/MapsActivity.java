@@ -4,12 +4,14 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.telephony.TelephonyManager;
@@ -122,6 +124,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 	    String myNumber = AppUtils.formatPhoneNumber(((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number());
 	    self = User.createUserByPhoneNumber(myFirebaseRef, myNumber);
 	    self.addValueEventListener(new SelfListener());
+	    //set user name
+	    self.writeName(AppUtils.formatName(getUserName()));
 
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -209,6 +213,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     for (int i = 0; i < names.size(); i++) {
 	                    final User friend = User.createUserByPhoneNumber(myFirebaseRef,
 			                    AppUtils.formatPhoneNumber(numbers.get(i)));
+	                    friend.writeName(AppUtils.formatName(names.get(i)));
 	                    friend.setMap(mMap);
 	                    friend.addCoordinateListener();
 
@@ -388,5 +393,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
     }
+
+	private String getUserName() {
+		Cursor c = getApplication().getContentResolver().query(ContactsContract.Profile.CONTENT_URI, null, null, null, null);
+		c.moveToFirst();
+		String retVal = c.getString(c.getColumnIndex("display_name"));
+		c.close();
+		return retVal;
+	}
 
 }

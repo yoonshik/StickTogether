@@ -11,4 +11,10 @@ public class AppUtils {
 		return formatted;
 	}
 
+	public static String formatName(String name) {
+		if (!name.contains(" "))
+			return name;
+		return name.substring(0, name.indexOf(" "));
+	}
+
 }

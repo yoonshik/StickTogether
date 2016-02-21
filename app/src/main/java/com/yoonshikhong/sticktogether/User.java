@@ -19,6 +19,7 @@ public class User {
 	private GoogleMap map;
 	private MarkerOptions markerOptions;
 	private ValueEventListener coordinateListener;
+	private String name;
 
 	private Firebase userRef;
 
@@ -91,6 +92,15 @@ public class User {
 		this.latitude = latitude;
 		userRef.child("longitude").setValue(longitude);
 		userRef.child("latitude").setValue(latitude);
+	}
+
+	/**
+	 * Sets user's name and pushes to Firebase
+	 * @param name
+	 */
+	public void writeName(String name) {
+		this.name = name;
+		userRef.child("name").setValue(name);
 	}
 
 	/**

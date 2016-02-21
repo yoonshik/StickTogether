@@ -29,7 +29,6 @@ public class Group {
 
 
 		GroupFirebaseContainer container = new GroupFirebaseContainer();
-		container.setIdentifier(group.uniqueIdentifier);
 		group.groupRef.setValue(container);
 
 		return group;

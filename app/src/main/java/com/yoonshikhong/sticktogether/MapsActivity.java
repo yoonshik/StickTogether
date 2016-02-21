@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -12,7 +11,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.telephony.TelephonyManager;
@@ -33,6 +31,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -45,7 +44,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     // The minimum time between updates in milliseconds
     private static final long MIN_TIME_BW_UPDATES = 200; // 1 minute
 
-    private static final int PICK_CONTACT = 1;
+    private static final int PICK_CONTACTS = 1510;
 
     private static final int CONTACT_PICKER_RESULT = 1001;
     private static final String DEBUG_TAG = "Contact List";
@@ -74,7 +73,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Firebase myFirebaseRef = new Firebase("https://sweltering-inferno-8609.firebaseio.com/");
         myFirebaseRef.child("newmessage").setValue("I have data!!!");
 
-
         setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -89,7 +87,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 //                Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
 //                startActivityForResult(intent, PICK_CONTACT);
                 Intent intent = new Intent(myActivity, ContactListActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, PICK_CONTACTS);
             }
         });
 
@@ -130,16 +128,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onActivityResult(int reqCode, int resultCode, Intent data) {
         super.onActivityResult(reqCode, resultCode, data);
-
+        Log.i(TAG, "onActivityResult");
         switch (reqCode) {
-            case (PICK_CONTACT) :
+            case (PICK_CONTACTS) :
                 if (resultCode == Activity.RESULT_OK) {
+                    Log.i(TAG, data.toString());
                     Uri contactData = data.getData();
-                    Cursor c =  managedQuery(contactData, null, null, null, null);
-                    if (c.moveToFirst()) {
-                        String name = c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-                        Log.i(TAG, name);
-                        // TODO Fetch other Contact details as you want to use
+                    ArrayList<String> names = data.getStringArrayListExtra("names");
+                    ArrayList<String> numbers = data.getStringArrayListExtra("numbers");
+
+                    for (int i = 0; i < names.size(); i++) {
+                        Log.i(TAG, i + " " + names.get(i));
                     }
                 }
                 break;

@@ -2,6 +2,7 @@ package com.yoonshikhong.sticktogether;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.ContactsContract;
@@ -21,6 +22,8 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.TreeMap;
+
+
 
 public class ContactListActivity extends Activity {
 
@@ -173,15 +176,29 @@ public class ContactListActivity extends Activity {
                 responseText.append("The following were selected...\n");
 
                 ArrayList<Contact> contactList = dataAdapter.contactList;
+
+                ArrayList<String> names = new ArrayList<String>();
+                ArrayList<String> numbers = new ArrayList<String>();
+
                 for(int i=0;i< contactList.size();i++){
                     Contact contact = contactList.get(i);
                     if(contact.isSelected()){
                         responseText.append("\n" + contact.getName());
+                        names.add(contact.getName());
+                        numbers.add(contact.getCode());
                     }
                 }
 
                 Toast.makeText(getApplicationContext(),
                         responseText, Toast.LENGTH_LONG).show();
+
+                Bundle b = new Bundle();
+                b.putStringArrayList("names", names);
+                b.putStringArrayList("numbers", numbers);
+                Intent i = getIntent(); //gets the intent that called this intent
+                i.putExtras(b);
+                setResult(Activity.RESULT_OK, i);
+                finish();
 
             }
         });
